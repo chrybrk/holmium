@@ -1,0 +1,16 @@
+#include "lib.ho"
+
+i32 main(void)
+{
+    i32 numb = 5;
+
+    i32 fact = 1;
+    for (int i = 0; i < numb; i++)
+    {
+        fact *= i;
+    }
+
+    print("Factorial: %d", fact);
+
+    return 0;
+}

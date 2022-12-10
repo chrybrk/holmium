@@ -1,0 +1,10 @@
+i32 main()
+{
+    i32 a = 100;
+    i32 b = 200;
+    i32 c = a + b;
+
+    print(c);
+
+    return 0;
+}
