@@ -1,5 +1,6 @@
 #include "include/lexer.h"
 #include "include/macro.h"
+#include "include/utils.h"
 
 static char *keyword[] = { 
     "if",
@@ -13,18 +14,9 @@ static char *data_type[] = {
     "void",
     "char",
     "string",
-    "i4",
-    "i8",
     "i16",
     "i32",
-    "i64",
-    "u4",
-    "u8",
-    "u16",
-    "u32",
-    "u64",
-    "f32",
-    "f64"
+    "i64"
 };
 
 struct token *init_token(int token, char *value, int ln, int clm)
@@ -52,6 +44,7 @@ const char *tok_type_to_string(int token)
         case T_LBRACE: return "T_LBRACE";
         case T_RBRACE: return "T_RBRACE";
         case T_SEMI: return "T_SEMI";
+        case T_COLON: return "T_COLON";
         case T_COMMA: return "T_COMMA";
         case T_ASSIGN:  return "T_ASSIGN";
         case T_NOT: return "T_NOT";
@@ -61,6 +54,7 @@ const char *tok_type_to_string(int token)
         case T_LT: return "T_LT";
         case T_GEQ: return "T_GEQ";
         case T_LEQ: return "T_LEQ";
+        case T_PERIOD: return "T_PERIOD";
         case T_INTLIT: return "T_INTLIT";
         case T_IDENT: return "T_IDENT";
         case T_IF: return "T_IF";
@@ -72,11 +66,13 @@ const char *tok_type_to_string(int token)
         case T_void: return "T_void";
         case T_char: return "T_char";
         case T_string: return "T_string";
-        case T_i4: return "T_i4";
-        case T_i8: return "T_i8";
         case T_i16: return "T_i16";
         case T_i32: return  "T_i32";
         case T_i64: return "T_i64";
+        case T_AMPER: return "T_AMPER";
+        case T_LOGAND: return "T_LOGAND";
+        case T_DBLQUOTE: return "T_DBLQUOTE";
+        case T_HASHTAG: return "T_HASHTAG";
         default: return "unknown token";
     }
 }
@@ -111,7 +107,7 @@ void lexer_advance(lexer_T *lexer)
     if (lexer->i < lexer->size && lexer->c != '\0')
     {
         lexer->clm++;
-        lexer->i += 1;
+        lexer->i++;
         lexer->c = lexer->src[lexer->i];
     }
 }
@@ -194,6 +190,22 @@ struct token *lexer_parse_id(lexer_T *lexer)
     return init_token(T_IDENT, word, ln, clm);
 }
 
+struct token *lexer_parse_string(lexer_T *lexer)
+{
+    char *value = calloc(1, sizeof(char));
+    int ln = lexer->ln; int clm = lexer->clm;
+    lexer_advance(lexer);
+
+    while (lexer->c != '"')
+    {
+        collect(value, lexer->c);
+        lexer_advance(lexer);
+    }
+    lexer_advance(lexer);
+
+    return init_token(T_string, value, ln, clm);
+}
+
 struct token *lexer_next_token(lexer_T *lexer)
 {
     while (lexer->c != '\0')
@@ -211,6 +223,7 @@ struct token *lexer_next_token(lexer_T *lexer)
             case '/': return lex_advance_current(lexer, T_SLASH);
             case '%': return lex_advance_current(lexer, T_MODULO);
             case ';': return lex_advance_current(lexer, T_SEMI);
+            case ':': return lex_advance_current(lexer, T_COLON);
             case ',': return lex_advance_current(lexer, T_COMMA);
             case '=': return lex_advance_twos(lexer, '=', T_EQU, T_ASSIGN);
             case '!': return lex_advance_twos(lexer, '=', T_NEQ, T_NOT);
@@ -221,8 +234,11 @@ struct token *lexer_next_token(lexer_T *lexer)
             case ')': return lex_advance_current(lexer, T_RPAREN);
             case '{': return lex_advance_current(lexer, T_LBRACE);
             case '}': return lex_advance_current(lexer, T_RBRACE);
+            case '"': return lexer_parse_string(lexer);
+            case '#': return lex_advance_current(lexer, T_HASHTAG);
+            case '.': return lex_advance_current(lexer, T_PERIOD);
             case '\0': break;
-            default: log(3, "ln:%d:%d\n\tUnrecognised character `%c`", lexer->ln, lexer->clm, lexer->c);
+            default: log(3, "ln:%d:%d\n\tUnrecognised character `%c`", lexer->ln, lexer->clm - 1, lexer->c);
         }
     }
 
@@ -299,5 +315,5 @@ int which_keyword(int loc)
 
 int which_data_type(int loc)
 {
-    loc += T_void; return (loc >= T_void && loc <= T_f64) ? loc : -1;
+    loc += T_void; return (loc >= T_void && loc <= T_i64) ? loc : -1;
 }

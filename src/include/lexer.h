@@ -14,6 +14,7 @@ enum
   T_LBRACE,
   T_RBRACE,
   T_SEMI,
+  T_COLON,
   T_COMMA,
   T_ASSIGN,
   T_NOT,
@@ -23,6 +24,7 @@ enum
   T_LT,
   T_GEQ,
   T_LEQ,
+  T_PERIOD,
   T_INTLIT,
   T_IDENT,
   T_EOF,
@@ -38,22 +40,15 @@ enum
   T_void,
   T_char,
   T_string,
-  T_i4,
-  T_i8,
   T_i16,
   T_i32,
   T_i64,
-  T_u4,
-  T_u8,
-  T_u16,
-  T_u32,
-  T_u64,
-  T_f32,
-  T_f64,
 
   // stuff
   T_AMPER,
-  T_LOGAND
+  T_LOGAND,
+  T_DBLQUOTE,
+  T_HASHTAG
 };
 
 struct token

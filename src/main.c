@@ -3,6 +3,7 @@
 #include "include/utils.h"
 
 #include "include/lexer.h"
+#include "include/parser.h"
 
 #define version "0.0.1"
 #define debug
@@ -114,7 +115,9 @@ int main(int argc, char *argv[])
     }
 
     lexer_T *lexer = init_lexer(read_file(fp));
-    token_print(lexer);
+    parser_T *parser = init_parser(lexer);
+
+    global_decl(parser);
 
     return 0;
 }

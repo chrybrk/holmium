@@ -18,13 +18,12 @@ gcc -Isrc/include src/*.c -o $project_bin_dir/holmium
 l=$?
 echo -n "==> [INFO] compiling project: "
 status $l
+echo -e ""
 
 for file in $test_files
 do
-    echo -n "==> [INFO] program output: "
     $project_bin_dir/holmium $file -o ./bin/output/$file.out
     l=$?
-    echo -e ""
     echo -n "==> [TEST] file: $file, status: "
     status $l
 done
