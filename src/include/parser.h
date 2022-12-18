@@ -68,6 +68,7 @@ struct ASTnode *parser_parse_primary(parser_T *parser);
 struct ASTnode *parser_parse_expr(parser_T *parser, int tok_prec);
 struct ASTnode *parser_parse_assignment(parser_T *parser);
 struct ASTnode *parser_parse_call(parser_T *parser);
+struct ASTnode *parser_parse_return(parser_T *parser);
 struct ASTnode *parser_parse_function(parser_T *parser_T, int type);
 struct ASTnode *parser_parse_variable(parser_T *parser, int type);
 struct ASTnode *parser_parse_statement(parser_T *parser_T);

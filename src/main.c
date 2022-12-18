@@ -2,6 +2,7 @@
 #include "include/macro.h"
 #include "include/utils.h"
 
+#include "include/global.h"
 #include "include/lexer.h"
 #include "include/parser.h"
 
@@ -118,6 +119,8 @@ int main(int argc, char *argv[])
     parser_T *parser = init_parser(lexer);
 
     global_decl(parser);
+
+    print_symbol_table();
 
     return 0;
 }
