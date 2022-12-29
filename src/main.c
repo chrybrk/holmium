@@ -115,12 +115,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    lexer_T *lexer = init_lexer(read_file(fp));
+    char *value = read_file(fp);
+
+    lexer_T *lexer = init_lexer(value);
     parser_T *parser = init_parser(lexer);
 
     global_decl(parser);
-
-    print_symbol_table();
 
     return 0;
 }

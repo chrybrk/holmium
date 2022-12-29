@@ -79,6 +79,7 @@ struct token *lexer_next_token(lexer_T *lexer);
 struct token *token_peek(lexer_T *lexer, int offset);
 
 void token_print(lexer_T* lexer);
+void token_print_arg(struct token *tok);
 int is_keyword(char *s);
 int which_keyword(int loc);
 int is_data_type(char *s);

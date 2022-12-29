@@ -284,6 +284,11 @@ void token_print(lexer_T *lexer)
     lexer->clm = 0;
 }
 
+void token_print_arg(struct token *tok)
+{
+    printf("%s\n", tok_string(tok));
+}
+
 int is_keyword(char *s)
 {
     int size = sizeof(keyword) / sizeof(keyword[0]);

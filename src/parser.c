@@ -132,7 +132,7 @@ struct ASTnode *parser_parse_primary(parser_T *parser)
 
                 return node;
             }
-        default: log(3, "ln:%d:%d\n\tsyntax err", parser->token->ln, parser->token->clm);
+        default: log(3, "ln:%d:%d\n\tsyntax err `%s`", parser->token->ln, parser->token->clm - 1, parser->token->value);
     }
 
     return 0;
@@ -171,7 +171,7 @@ struct ASTnode *parser_parse_expr(parser_T *parser, int tok_prec)
 struct ASTnode *parser_parse_assignment(parser_T *parser)
 {
     struct ASTnode *left, *right, *tree;
-    int id = symbol_get(parser->token->value);
+    int id = symbol_get(last_variable == NULL ? parser->token->value : last_variable->value);
 
     if (id == -1)
     {
@@ -179,7 +179,7 @@ struct ASTnode *parser_parse_assignment(parser_T *parser)
     }
 
     right = ASTnode_leaf(AST_LVAL, symbol_table_find(id)->type, id);
-    eat(parser, T_IDENT);
+    if (last_variable == NULL) eat(parser, T_IDENT);
     expected_tok(parser, T_ASSIGN);
 
     left = parser_parse_expr(parser, 0);
@@ -194,28 +194,73 @@ struct ASTnode *parser_parse_assignment(parser_T *parser)
 
     if (parser->token->token != T_RPAREN) expected_tok(parser, T_SEMI);
 
+    last_variable = NULL;
+
     return tree;
 }
 
-struct ASTnode *parser_parse_call(parser_T *parser)
+struct ASTnode *parser_parse_variable(parser_T *parser, int type)
 {
-    return NULL;
+
+    while (1)
+    {
+        // TODO: it might not work because of old poisition collapse
+
+        struct token *tok = parser->token;
+
+        char *identifier = calloc(1, sizeof(strlen(tok->value)));
+        strcpy(identifier, tok->value);
+        eat(parser, T_IDENT);
+
+        create_symbol_table(identifier, type, S_VARIABLE, 0);
+
+        if (parser->token->token == T_SEMI)
+        {
+            eat(parser, T_SEMI); return NULL;
+        }
+        else if (parser->token->token == T_COMMA)
+        {
+            eat(parser, T_COMMA); continue;
+        }
+        else if (parser->token->token == T_ASSIGN)
+        {
+            last_variable = tok;
+            return parser_parse_assignment(parser);
+        }
+        else return NULL;
+    }
+
+    log(3, "ln:%d:%d\n\texpected ; or ,", parser->token->ln, parser->token->clm);
 }
 
-struct ASTnode *parser_parse_return(parser_T *parser)
+struct ASTnode *parser_parse_for(parser_T *parser)
 {
-    if (symbol_table_find(current_function_call)->type == P_void) log(3, "%s", "void function cannot return.");
-    struct ASTnode *tree;
+    struct ASTnode *condtionalAST, *bodyAST = NULL;
+    struct ASTnode *preopAST, *postopAST = NULL;
+    struct ASTnode *tree = NULL;
 
-    eat(parser, T_RETURN);
-    tree = parser_parse_expr(parser, 0);
-    if (tree->op == AST_INTLIT) tree->type = symbol_table_find(current_function_call)->type;
+    eat(parser, T_FOR);
+    eat(parser, T_LPAREN);
 
-    if (tree->type != symbol_table_find(current_function_call)->type) log(3, "%s", "function return type don't match.");
-    tree = ASTnode_unary(AST_RETURN, P_nil, current_function_call, tree);
-    eat(parser, T_SEMI);
+    if (parser->token->token < T_char || parser->token->token > T_i64)
+    {
+        log(3, "ln:%d:%d\n\texpected `char`, `i16`, `i32` or `i64`, got `%s`", parser->token->ln, parser->token->clm - 1, parser->token->value);
+    }
 
-    return tree;
+    parser_parse_statement(parser);
+    preopAST = parser_parse_statement(parser);
+    condtionalAST = parser_parse_expr(parser, 0);
+    expected_tok(parser, T_SEMI);
+    if (condtionalAST->op < AST_EQU || condtionalAST->op > AST_LEQ) log(3, "invalid cmp, `%s`", tok_type_to_string(condtionalAST->op));
+    postopAST = parser_parse_statement(parser);
+    eat(parser, T_RPAREN);
+
+    bodyAST = parser_parse_compound_statement(parser);
+    bodyAST = (bodyAST == NULL) ? ASTnode_unary(AST_NOOP, P_nil, 0, bodyAST) : bodyAST;
+
+    tree = init_ASTnode(AST_GLUE, P_nil, 0, bodyAST, NULL, postopAST);
+    tree = init_ASTnode(AST_WHILE, P_nil, 0, condtionalAST, NULL, tree);
+    return init_ASTnode(AST_GLUE, P_nil, 0, preopAST, NULL, tree);
 }
 
 struct ASTnode *parser_parse_function(parser_T *parser, int type)
@@ -243,34 +288,28 @@ struct ASTnode *parser_parse_function(parser_T *parser, int type)
     return ASTnode_unary(AST_FUNCTION, type, slot, tree);
 }
 
-struct ASTnode *parser_parse_variable(parser_T *parser, int type)
+struct ASTnode *parser_parse_call(parser_T *parser)
 {
-
-    while (1)
-    {
-        // TODO: it might not work because of old poisition collapse
-
-        struct token *tok = parser->token;
-
-        char *identifier = calloc(1, sizeof(strlen(tok->value)));
-        strcpy(identifier, tok->value);
-        eat(parser, T_IDENT);
-
-        create_symbol_table(identifier, type, S_VARIABLE, 0);
-
-        if (parser->token->token == T_SEMI)
-        {
-            eat(parser, T_SEMI); return NULL;
-        }
-        else if (parser->token->token == T_COMMA)
-        {
-            eat(parser, T_COMMA); continue;
-        }
-        else return NULL;
-    }
-
-    log(3, "ln:%d:%d\n\texpected ; or ,", parser->token->ln, parser->token->clm);
+    return NULL;
 }
+
+struct ASTnode *parser_parse_return(parser_T *parser)
+{
+    if (symbol_table_find(current_function_call)->type == P_void) log(3, "%s", "void function cannot return.");
+    struct ASTnode *tree;
+
+    eat(parser, T_RETURN);
+
+    tree = parser_parse_expr(parser, 0);
+    if (tree->op == AST_INTLIT) tree->type = symbol_table_find(current_function_call)->type;
+
+    if (tree->type != symbol_table_find(current_function_call)->type) log(3, "%s", "function return type don't match.");
+    tree = ASTnode_unary(AST_RETURN, P_nil, current_function_call, tree);
+    eat(parser, T_SEMI);
+
+    return tree;
+}
+
 
 struct ASTnode *parser_parse_statement(parser_T *parser)
 {
@@ -279,12 +318,16 @@ struct ASTnode *parser_parse_statement(parser_T *parser)
     switch (parser->token->token)
     {
         case T_RETURN: tree = parser_parse_return(parser); break;
-        case T_char: parser_parse_variable(parser, get_type(parser)); break;
-        case T_i16: parser_parse_variable(parser, get_type(parser)); break;
-        case T_i32: parser_parse_variable(parser, get_type(parser)); break;
-        case T_i64: parser_parse_variable(parser, get_type(parser)); break;
-        case T_void: parser_parse_variable(parser, get_type(parser)); break;
-        case T_IDENT: parser_parse_call(parser); break;
+        case T_FOR: tree = parser_parse_for(parser); break;
+        case T_char: tree = parser_parse_variable(parser, get_type(parser)); break;
+        case T_i16: tree = parser_parse_variable(parser, get_type(parser)); break;
+        case T_i32: tree = parser_parse_variable(parser, get_type(parser)); break;
+        case T_i64: tree = parser_parse_variable(parser, get_type(parser)); break;
+        case T_void: tree = parser_parse_variable(parser, get_type(parser)); break;
+        case T_IDENT:
+                    {
+                        if (token_peek(parser->lexer, 1)->token == T_ASSIGN) tree = parser_parse_assignment(parser); break;
+                    }
         default: tree = parser_parse_expr(parser, 0); break;
     }
 
@@ -307,6 +350,7 @@ struct ASTnode *parser_parse_compound_statement(parser_T *parser)
             default: tree = parser_parse_statement(parser);
         }
         // tree = parser_parse_statement(parser);
+
 
         if (tree)
         {

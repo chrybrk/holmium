@@ -1,11 +1,10 @@
 i32 main()
 {
-    i32 a, b, c, d;
+    i32 a = 10;
 
-    return 0;
-}
+    i32 b, c = 100;
 
-i32 test()
-{
+    c = 20;
+
     return 0;
 }

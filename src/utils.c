@@ -8,7 +8,7 @@ char* read_file(const char* filename)
     char *line = NULL;
     long len;
 
-    fp = fopen(filename, "rb");
+    fp = fopen(filename, "r");
     if ( fp == NULL )
     {
         log(3, "Cannot read file from this filepath, `%s`\n", filename);

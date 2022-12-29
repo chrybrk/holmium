@@ -1,0 +1,12 @@
+i32 main()
+{
+    i32 nth_term = 100;
+    i32 c = 0;
+
+    for (i32 i = 0; i < nth_term; i = i + 1)
+    {
+        c = c + i;
+    }
+
+    return 0;
+}
